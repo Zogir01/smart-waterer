@@ -56,8 +56,8 @@ SmartPlant/
 
 - ESP32-WROOM-32 development board
 - ESP-IDF environment set up
-- Android Studio (for mobile app development)
-- Altium Designer (for PCB modifications)
+- ~~Android Studio (for mobile app development)~~
+- ~~Altium Designer (for PCB modifications)~~
 
 ### Build & Flash (Firmware)
 
@@ -71,7 +71,7 @@ idf.py -p /dev/ttyUSB0 flash monitor
 
 - Real-time moisture sensing
 - Configurable watering logic (via REST API)
-- Manual watering trigger via button or app
+- Manual watering trigger via button or ~~app~~
 - Task-based FreeRTOS design (multithreaded)
 - Persistent configuration storage via NVS
 
