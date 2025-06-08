@@ -12,12 +12,12 @@
 #define GPIO_HUM_SENSOR             		34          	// Pin podpięty do czujnika wilgotności
 #define GPIO_SDA                    		18          	// Pin danych I2C
 #define GPIO_SCL                    		5          		// Pin zegara I2C
-#define GPIO_RST                    		-1          	// Pin reset I2C
+#define GPIO_RST                    		-1       		// Pin reset I2C
 
 // ------------------------------ KONFIGURACJA LCD -----------------------------------------
 
 //#define LCD_PIXEL_CLOCK_HZ        (400 * 1000)
-#define LCD_H_RES                   		128         	// Szerokość wyświetlacza
+#define LCD_H_RES                   		128             // Szerokość wyświetlacza
 #define LCD_V_RES                   		32          	// Wysokość wyświetlacza
 
 // ------------------------------ DOMYSLNA KONFIGURACJA ------------------------------------
