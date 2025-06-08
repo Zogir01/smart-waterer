@@ -117,7 +117,7 @@ void app_main(void)
     configAnalogPin(GPIO_HUM_SENSOR);
     
     //Inicjalizacja kolejek
-    watering_queue = xQueueCreate(10, sizeof(int));
+    watering_queue = xQueueCreate(1, sizeof(int));
     humidity_queue = xQueueCreate(1, sizeof(int));
     
     // Inicjalizacja NVS (Non-Volatile Storage)

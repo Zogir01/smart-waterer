@@ -26,6 +26,19 @@
 #define DEFAULT_CONFIG_READ_DELAY          			100         // Czas w ms pomiędzy pomiarami wilgotności
 #define DEFAULT_CONFIG_DRY_THRESHOLD          		50          // Próg wilgotności dla którego podlewać
 
+// ------------------------------ WALIDACJA DANYCH -----------------------------------------
+#define MIN_WATERING_TIME							100
+#define MAX_WATERING_TIME							10000
+
+#define MIN_SAMPLE_COUNT							1
+#define MAX_SAMPLE_COUNT							10000
+
+#define MIN_READ_DELAY 								50
+#define MAX_READ_DELAY 								10000
+
+#define MIN_DRY_THRESHOLD							1
+#define MAX_DRY_THRESHOLD 							99
+
 // ------------------------------ DODATKOWE DO TESTÓW --------------------------------------
 #define HUM_THRESHOLD_REVERSE       				true        // Określa czy podlewanie odbędzie się poniżej progu czy powyżej (do testów)
 
