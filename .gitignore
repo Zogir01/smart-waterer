@@ -1,0 +1,4 @@
+esp32_firmware/build
+
+*.project
+*.cproject
