@@ -37,14 +37,14 @@ Unlike many existing products that either focus only on monitoring or provide si
 ## 📁 Repository Structure
 
 ```plaintext
-SmartPlant/
-├── firmware/               # ESP-IDF project
+smart-waterer/
+├── esp32_firmware/               # ESP-IDF project
 │   └── ...
-├── mobile-app/             # Java/Kotlin Android app
+├── mobile-app/                   # Android app
 │   └── ...
-├── hardware/               # Schematics and PCB files (e.g. from Altium)
+├── hardware/                     # Schematics and PCB files (e.g. from Altium)
 │   └── ...
-├── doc/                    # Documentation and diagrams
+├── doc/                          # Documentation and diagrams
 │   └── ...				
 ```
 
