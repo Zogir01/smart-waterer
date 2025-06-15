@@ -121,8 +121,6 @@ const char *html =
     return ESP_OK;
 }
 
-// Handler obsługujący zdalne podlewanie,
-// zarejestrowany na POST api/water
 esp_err_t water_post_handler(httpd_req_t *req) 
 {
 	uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
@@ -145,8 +143,6 @@ esp_err_t water_post_handler(httpd_req_t *req)
 	return ESP_OK;
 }
 
-// Handler obsługujący wysłanie aktualnej wilgotności do clienta,
-// zarejestrowany na GET api/humidity
 esp_err_t humidity_get_handler(httpd_req_t *req)
 {
 	// Inicjalizacja obiektu JSON
@@ -188,8 +184,6 @@ esp_err_t humidity_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// Handler obsługujący zmiane konfiguracji użytkownika,
-// zarejestrowany na POST api/config
 esp_err_t config_post_handler(httpd_req_t *req) 
 {
 	// Bufor danych 
@@ -251,8 +245,6 @@ esp_err_t config_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// Handler obsługujący wysłanie konfiguracji użytkownika do clienta,
-// zarejestrowany na GET api/config
 esp_err_t config_get_handler(httpd_req_t *req) 
 {
 	// Inicjalizacja obiektu JSON

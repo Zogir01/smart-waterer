@@ -3,7 +3,6 @@
 
 #define CONFIG_NAMESPACE "usercfg"
 
-// Zapis konfiguracji do NVS
 esp_err_t config_save(const user_config_t *config) {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(CONFIG_NAMESPACE, NVS_READWRITE, &handle);
@@ -19,7 +18,6 @@ esp_err_t config_save(const user_config_t *config) {
     return err;
 }
 
-// Odczyt konfiguracji z NVS
 esp_err_t config_load(user_config_t *config) {
     nvs_handle_t handle;
     esp_err_t err = nvs_open(CONFIG_NAMESPACE, NVS_READONLY, &handle);

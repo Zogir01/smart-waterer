@@ -280,8 +280,6 @@ void init_user_config()
              user_config.watering_time, user_config.sample_count, user_config.read_delay, user_config.dry_threshold);
 }
 
-// Task będący pośrednikiem pomiędzy serwerem http, a resztą programu
-// PLACEHOLDER
 void taskHttpServer(void *arg) {
     ESP_LOGI(TAG, "Start HTTP server task");
 
@@ -292,7 +290,6 @@ void taskHttpServer(void *arg) {
 	}
 }
 
-// Task odpowiedzialny za nasluchiwanie i wlaczanie pompy wody
 void taskWaterPump(void* arg)
 {
     uint32_t watering_signal;	// Sygnał podlewania z kolejki, 1 - podlej, 0 - nie podlewaj
@@ -323,7 +320,6 @@ void taskWaterPump(void* arg)
     } 
 }
 
-// Task odczytujący pomiary wilgotności 
 void taskReadHumiditySensor(void* arg) 
 {
     uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
@@ -357,7 +353,6 @@ void taskReadHumiditySensor(void* arg)
     }
 }
  
-// Obsługa przerwań na zmiane stanu przycisku do ręcznego podlewania
 static void IRAM_ATTR on_manual_watering_press(void* arg) 
 {
     uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
@@ -370,7 +365,6 @@ static void IRAM_ATTR on_manual_watering_press(void* arg)
     // xSemaphoreTakeFromISR(watering_semaphore, NULL);
 }
 
-// Odczyt średniej wilgotności z ADC
 esp_err_t read_average_humidity(float *humidity) 
 {
     int sum = 0;
@@ -399,7 +393,6 @@ esp_err_t read_average_humidity(float *humidity)
     return ESP_OK;
 }
 
-// Zamienia surową wartość wilgotności z ADC na procentowy zapis
 float raw_adc_to_humidity(int raw_value) 
 {	
     // Zakres pomiarowy przetwornika
