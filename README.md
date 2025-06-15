@@ -61,9 +61,9 @@ smart-waterer/
 
 ### Build & Flash (Firmware)
 
-cd firmware
-idf.py build
-idf.py -p /dev/ttyUSB0 flash monitor
+1. cd esp32_firmware 
+2. idf.py build 
+3. idf.py -p /dev/ttyUSB0 flash monitor
 
 ---
 
