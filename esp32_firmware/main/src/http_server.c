@@ -3,26 +3,24 @@
 #include "../inc/config.h"
 #include "esp_http_server.h"
 #include "freertos/projdefs.h"
-#include "freertos/queue.h"
 #include "cJSON.h"
 #include <string.h>
 #include <fcntl.h>
 #include <math.h>
 
+/**
+ * @brief TAG do logów dla tego modułu.
+ */
 static const char *TAG = "http_server";
 
 extern volatile user_config_t user_config;
-//extern volatile float current_humidity;
-//extern volatile bool isWatering;
 extern volatile QueueHandle_t watering_queue;
 extern volatile QueueHandle_t humidity_queue;
 
-// Handler obsługujący zwrócenie prostej strony html
-// GET /
 esp_err_t root_get_handler(httpd_req_t *req)
 {
-	// Prosta stronka html do testów
-	// Prosta stronka html wysyłająca zapytanie GET /api/humidity co sekunde oraz wyświetlająca wilgotność
+	// Testowa strona html wysyłająca zapytanie GET /api/humidity co sekunde oraz wyświetlająca wilgotność
+
 const char *html =
 "<!DOCTYPE html>"
 "<html><head><title>ESP32 Wilgotnosc</title></head>"
@@ -123,8 +121,8 @@ const char *html =
     return ESP_OK;
 }
 
-// Handler obsługujący zdalne podlewanie
-// POST api/water
+// Handler obsługujący zdalne podlewanie,
+// zarejestrowany na POST api/water
 esp_err_t water_post_handler(httpd_req_t *req) 
 {
 	uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
@@ -147,8 +145,8 @@ esp_err_t water_post_handler(httpd_req_t *req)
 	return ESP_OK;
 }
 
-// Handler obsługujący wysłanie aktualnej wilgotności do clienta
-// GET api/humidity
+// Handler obsługujący wysłanie aktualnej wilgotności do clienta,
+// zarejestrowany na GET api/humidity
 esp_err_t humidity_get_handler(httpd_req_t *req)
 {
 	// Inicjalizacja obiektu JSON
@@ -190,8 +188,8 @@ esp_err_t humidity_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// Handler obsługujący zmiane konfiguracji użytkownika
-// POST api/config
+// Handler obsługujący zmiane konfiguracji użytkownika,
+// zarejestrowany na POST api/config
 esp_err_t config_post_handler(httpd_req_t *req) 
 {
 	// Bufor danych 
@@ -212,12 +210,22 @@ esp_err_t config_post_handler(httpd_req_t *req)
     cJSON *dry_threshold_item = cJSON_GetObjectItem(json, "dry_threshold");
 
     // Walidacja typów i zakresów
-    if (   !cJSON_IsNumber(watering_time_item) || watering_time_item->valueint < MIN_WATERING_TIME || watering_time_item->valueint > MAX_WATERING_TIME 
-		|| !cJSON_IsNumber(sample_count_item)  || sample_count_item->valueint < MIN_SAMPLE_COUNT   || sample_count_item->valueint > MAX_SAMPLE_COUNT 
-		|| !cJSON_IsNumber(read_delay_item)    || read_delay_item->valueint < MIN_READ_DELAY       || read_delay_item->valueint > MAX_READ_DELAY 
-        || !cJSON_IsNumber(dry_threshold_item) || dry_threshold_item->valueint < MIN_DRY_THRESHOLD || dry_threshold_item->valueint > MAX_DRY_THRESHOLD) 
+    if (   !cJSON_IsNumber(watering_time_item) 
+    	|| watering_time_item->valueint < MIN_WATERING_TIME 
+    	|| watering_time_item->valueint > MAX_WATERING_TIME 
+    	
+		|| !cJSON_IsNumber(sample_count_item)  
+		|| sample_count_item->valueint  < MIN_SAMPLE_COUNT  
+		|| sample_count_item->valueint  > MAX_SAMPLE_COUNT 
+		
+		|| !cJSON_IsNumber(read_delay_item)    
+		|| read_delay_item->valueint 	< MIN_READ_DELAY    
+		|| read_delay_item->valueint 	> MAX_READ_DELAY 
+		
+        || !cJSON_IsNumber(dry_threshold_item) 
+        || dry_threshold_item->valueint < MIN_DRY_THRESHOLD 
+        || dry_threshold_item->valueint > MAX_DRY_THRESHOLD) 
     {
-
         cJSON_Delete(json);
         httpd_resp_set_status(req, "400 Bad Request");
         httpd_resp_set_type(req, "application/json");
@@ -243,8 +251,8 @@ esp_err_t config_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// Handler obsługujący wysłanie konfiguracji użytkownika do clienta
-// GET api/config
+// Handler obsługujący wysłanie konfiguracji użytkownika do clienta,
+// zarejestrowany na GET api/config
 esp_err_t config_get_handler(httpd_req_t *req) 
 {
 	// Inicjalizacja obiektu JSON

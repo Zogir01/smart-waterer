@@ -5,11 +5,32 @@
 #include "esp_log.h"
 #include <string.h>
 
-#define WIFI_AP_SSID      "Podlewajka"
-#define WIFI_AP_PASS      "12345678"
-#define MAX_STA_CONN   4
-
+/**
+ * @brief TAG do logów dla tego modułu.
+ */
 static const char *TAG = "wifi_ap";
+
+
+/**
+ * @brief Nazwa SSID sieci WiFi Access Point.
+ * 
+ * SSID (nazwa sieci), która będzie widoczna dla urządzeń chcących się połączyć
+ * z ESP32 działającym jako Access Point.
+ */
+#define WIFI_AP_SSID   "Podlewajka"
+
+/**
+ * @brief Hasło sieci WiFi Access Point.
+ * 
+ * Hasło zabezpieczające dostęp do sieci utworzonej przez ESP32. Wymagane minimum 8 znaków
+ * dla trybu WPA/WPA2.
+ */
+#define WIFI_AP_PASS   "12345678"
+
+/**
+ * @brief Maksymalna liczba urządzeń mogących jednocześnie połączyć się z Access Pointem.
+ */
+#define MAX_STA_CONN   4
 
 void wifi_init_softap(void) 
 {    

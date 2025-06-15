@@ -1,9 +1,37 @@
+/**
+ * @file main.c
+ * @brief Główna logika aplikacji sterującej automatycznym podlewaniem roślin przy użyciu ESP32.
+ * 
+ * Ten plik zawiera funkcję `app_main()` będącą punktem wejścia programu, a także inicjalizację
+ * wszystkich kluczowych komponentów systemu: czujników, kolejek, Wi-Fi, przerwań oraz tasków FreeRTOS.
+ * System realizuje automatyczne oraz ręczne podlewanie w zależności od poziomu wilgotności gleby
+ * oraz sygnałów wejściowych (przycisk, API).
+ *
+ * ### Główne komponenty:
+ * - **ADC + czujnik wilgotności**: Cycliczny odczyt wilgotności gleby i konwersja na wartość procentową.
+ * - **Pompa wody**: Aktywowana, gdy poziom wilgotności spada poniżej zadanego progu.
+ * - **FreeRTOS Taski**:
+ *    - `taskReadHumiditySensor`: Odczyt i analiza wilgotności.
+ *    - `taskWaterPump`: Obsługa włączania pompy na określony czas.
+ *    - `taskHttpServer`: Integracja z API (placeholder).
+ * - **Kolejki FreeRTOS**:
+ *    - `watering_queue`: Sterowanie włączaniem pompy.
+ *    - `humidity_queue`: Przechowywanie aktualnej wilgotności.
+ * - **Konfiguracja użytkownika (`user_config`)**: Parametry ustawiane przez użytkownika (czas podlewania, próg wilgotności itd.)
+ * 
+ * ### Obsługiwane tryby podlewania:
+ * - **Automatyczny**: na podstawie odczytu wilgotności.
+ * - **Ręczny**: fizyczny przycisk lub żądanie HTTP.
+ */
+
 // ------------------------------- STANDARD C ----------------------------------------------
+
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
 
 // ------------------------------- ESP-IDF -------------------------------------------------
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
@@ -15,92 +43,162 @@
 #include "nvs_flash.h"
 
 // ------------------------------- WŁASNE MODUŁY -------------------------------------------
+
 #include "../inc/config.h"
 #include "../inc/io_util.h"
 #include "../inc/display.h"
 #include "../inc/user_config.h"
 #include "../inc/http_server.h"
-
-//#include "http_server.h"
 #include "../inc/wifi_ap.h"
 
 // ------------------------------- ZMIENNE GLOBALNE ----------------------------------------
+
+/**
+ * @brief TAG do logów dla main.c
+ */
 static const char *TAG = "MAIN"; // TAG błędów dla main.c
 
-static bool isWatering = false; // globalna flaga (przeciw debouncing'owi)
+/**
+ * @brief Flaga stanu podlewania.
+ *
+ * Zmienna informuje, czy w danym momencie trwa proces podlewania.
+ * Pomaga zapobiec wielokrotnemu wywołaniu operacji podlewania (tzw. debouncing logiczny),
+ * szczególnie w przypadkach, gdy polecenie może być szybko powtórzone (np. przez przycisk lub API).
+ *
+ * @note Używana jako zabezpieczenie przed powieleniem żądań podlewania.
+ */
+static bool isWatering = false;
 
-volatile QueueHandle_t humidity_queue = NULL; // handlery kolejek
-volatile QueueHandle_t watering_queue = NULL; //
+/**
+ * @brief Globalna konfiguracja użytkownika.
+ * 
+ * Zmienna przechowuje bieżącą konfigurację parametrów systemu podlewania, takich jak
+ * czas podlewania, liczba próbek, opóźnienie odczytu i próg wilgotności.
+ * 
+ * @note Konfiguracja jest aktualizowana z poziomu HTTP API.
+ */
 volatile user_config_t user_config;
+
+/**
+ * @brief Kolejka zadań podlewania.
+ * 
+ * Używana do inicjowania procesu podlewania przez:
+ * - task odczytu wilgotności (automatyczne podlewanie): `taskReadHumiditySensor(void*)`, 
+ * - funkcje obsługi przerwania (ręczne podlewanie przycisiem): `on_manual_watering_press(void*)`.
+ * - funkcje obsługującą żądanie z rest api (ręczne podlewanie z poziomu aplikacji): `water_post_handler(httpd_req_t *req)`
+ */
+volatile QueueHandle_t watering_queue = NULL;
+
+/**
+ * @brief Kolejka z ostatnim odczytem wilgotności.
+ * 
+ * Pozwala na asynchroniczne pobieranie danych o wilgotności przez serwer HTTP.
+ */
+volatile QueueHandle_t humidity_queue = NULL;
 
 //-------------------------------- DEKLARACJE FUNKCJI --------------------------------------
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
- * 
- * [Tutaj wstawić opis funkcji]
- * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @brief Inicjalizacja konfiguracji użytkownika z pamięci NVS.
+ *
+ * Wczytuje konfigurację systemu podlewania z NVS. Jeśli brak danych w pamięci,
+ * ustawia wartości domyślne i zapisuje je do NVS.
+ */
+void init_user_config();
+
+/**
+ * @brief Task odpowiedzialny za włączanie i wyłączanie pompy wody.
+ *
+ * Oczekuje na sygnał w kolejce `watering_queue`. Jeśli odbierze wartość `1`,
+ * aktywuje przekaźnik pompy na czas określony w `user_config.watering_time`,
+ * a następnie ją wyłącza. Ustawia flagę `isWatering` na czas działania pompy
+ * w celu zapobieżenia wielokrotnym uruchomieniom.
+ *
+ * @param arg Parametr nieużywany.
  */
 void taskWaterPump(void* arg);
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
- * 
- * [Tutaj wstawić opis funkcji]
- * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @brief Task cyklicznie odczytujący wilgotność gleby.
+ *
+ * Wykonuje `user_config.sample_count` odczytów z czujnika wilgotności,
+ * oblicza ich średnią i umieszcza ją w `humidity_queue`.
+ * Jeśli wilgotność przekroczy próg (`user_config.dry_threshold`),
+ * dodaje sygnał podlewania do `watering_queue`.
+ *
+ * @param arg Parametr nieużywany.
  */
 void taskReadHumiditySensor(void* arg);
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
- * 
- * [Tutaj wstawić opis funkcji]
- * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @brief Task do uruchomienia i obsługi serwera HTTP.
+ *
+ * Task pośredniczy w komunikacji między serwerem HTTP a resztą aplikacji.
+ * Obecnie pełni funkcję placeholdera, ale może w przyszłości służyć do synchronizacji danych,
+ * takich jak aktualna wilgotność.
+ *
+ * @param arg Parametr nieużywany.
  */
 void taskHttpServer(void *arg);
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
- * 
- * [Tutaj wstawić opis funkcji]
- * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @brief Obsługa przerwania od przycisku ręcznego podlewania.
+ *
+ * Funkcja ISR (Interrupt Service Routine), która dodaje sygnał do `watering_queue`,
+ * jeśli podlewanie nie jest już aktywne (`isWatering == false`).
+ *
+ * @note ISR — funkcja musi być szybka i nie może używać funkcji blokujących.
+ *
+ * @param arg Parametr nieużywany.
  */
 static void IRAM_ATTR on_manual_watering_press(void* arg);
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
- * 
- * [Tutaj wstawić opis funkcji]
- * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @brief Odczyt i uśrednienie wilgotności z czujnika gleby.
+ *
+ * Wykonuje `user_config.sample_count` pomiarów z ADC,
+ * każdy z opóźnieniem `user_config.read_delay` i wylicza średnią.
+ * Następnie przelicza wartość surową na procentową.
+ *
+ * @param humidity Wskaźnik na zmienną, do której zostanie przypisana wilgotność [%].
+ * @return `ESP_OK` w przypadku sukcesu, `ESP_FAIL` w przypadku błędu odczytu.
  */
 esp_err_t read_average_humidity(float *humidity);
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
- * 
- * [Tutaj wstawić opis funkcji]
- * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @brief Konwersja surowej wartości ADC na wartość wilgotności [%].
+ *
+ * Zakres surowych wartości ustalony na podstawie kalibracji czujnika (950–2750).
+ * Funkcja mapuje wynik pomiaru na przedział procentowy 0–100%.
+ *
+ * @param raw_value Surowa wartość odczytana z ADC.
+ * @return Wilgotność gleby w procentach [0–100%].
  */
 float raw_adc_to_humidity(int raw_value);
 
+/**
+ * @brief Główna funkcja aplikacji, punkt startowy programu na ESP32.
+ * 
+ * Funkcja `app_main()` wykonuje pełną inicjalizację systemu automatycznego podlewania roślin.
+ * Odpowiada za konfigurację sprzętową, inicjalizację FreeRTOS, WiFi w trybie Access Point, 
+ * odczyt i zapis konfiguracji użytkownika, oraz uruchomienie głównych zadań systemu.
+ * 
+ * Szczegółowe czynności wykonywane przez funkcję:
+ * - Konfiguracja przetwornika analogowo-cyfrowego (ADC) do pomiaru wilgotności.
+ * - Konfiguracja pinów cyfrowych: sterowanie pompą oraz przycisk ręcznego podlewania.
+ * - Inicjalizacja kolejek FreeRTOS do komunikacji między taskami.
+ * - Inicjalizacja systemu pamięci nieulotnej (NVS) do przechowywania konfiguracji.
+ * - Załadowanie konfiguracji użytkownika z NVS lub ustawienie domyślnych wartości, jeśli brak danych.
+ * - Instalacja obsługi przerwań dla przycisku do ręcznego podlewania.
+ * - Inicjalizacja WiFi w trybie Access Point (AP).
+ * - Utworzenie i uruchomienie trzech tasków FreeRTOS:
+ *    - `taskWaterPump` — zarządzanie pracą pompy.
+ *    - `taskReadHumiditySensor` — odczyt wilgotności gleby i sterowanie podlewaniem.
+ *    - `taskHttpServer` — obsługa serwera HTTP (API).
+ * - Uruchomienie serwera HTTP do obsługi zdalnych żądań.
+ * 
+ * @note Funkcja działa jako główna pętla programu, ale sama nie zawiera pętli — zadania realizują operacje cykliczne.
+ */
 void app_main(void) 
 {	
 	// Konfiguracja przetwornika analogowo-cyfrowego
@@ -183,18 +281,13 @@ void init_user_config()
 }
 
 // Task będący pośrednikiem pomiędzy serwerem http, a resztą programu
+// PLACEHOLDER
 void taskHttpServer(void *arg) {
     ESP_LOGI(TAG, "Start HTTP server task");
 
     while(1) 
     {
-/*		float humidity = 0.0f;
-		
-		// Odczyt aktualnej wilgotności
-		if (xQueueReceive(humidity_queue, &humidity, portMAX_DELAY)) {
-			// Zapis aktualnej wilgotności do zmiennej, wykorzystywanej przez http server
-			current_humidity = humidity;
-		} */
+
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 }

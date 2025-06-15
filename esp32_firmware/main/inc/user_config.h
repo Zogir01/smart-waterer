@@ -1,3 +1,7 @@
+/**
+ * @file user_config.c
+ * @brief Funkcje do zapisu i odczytu konfiguracji użytkownika w pamięci NVS.
+ */
 #ifndef USER_CONFIG_H
 #define USER_CONFIG_H
 
@@ -42,24 +46,24 @@ typedef struct {
 } user_config_t;
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
+ * @brief Zapisuje konfigurację użytkownika do pamięci NVS.
  * 
- * [Tutaj wstawić opis funkcji]
+ * Funkcja otwiera przestrzeń nazw NVS, zapisuje poszczególne pola struktury `user_config_t`
+ * jako wartości całkowite (int32) i zatwierdza zmiany w pamięci nieulotnej.
  * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @param config Wskaźnik na strukturę `user_config_t` zawierającą parametry konfiguracji do zapisania.
+ * @return esp_err_t Kod błędu z operacji NVS. ESP_OK oznacza powodzenie.
  */
 esp_err_t config_save(const user_config_t *config);
 
 /**
- * @brief [Tutaj wstawić skrócony opis funkcji]
+ * @brief Wczytuje konfigurację użytkownika z pamięci NVS.
  * 
- * [Tutaj wstawić opis funkcji]
+ * Funkcja otwiera przestrzeń nazw NVS w trybie tylko do odczytu i pobiera wartości
+ * poszczególnych parametrów konfiguracji zapisane wcześniej funkcją `config_save`.
  * 
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @param [Tutaj wstawić opis parametrów (jeśli są)]
- * @return [Tutaj wstawić opis co funkcja zwraca.]
+ * @param config Wskaźnik na strukturę `user_config_t`, do której zostaną zapisane odczytane wartości.
+ * @return esp_err_t Kod błędu z operacji NVS. ESP_OK oznacza powodzenie.
  */
 esp_err_t config_load(user_config_t *config);
 

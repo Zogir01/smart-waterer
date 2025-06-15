@@ -5,7 +5,16 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+/**
+ * @brief TAG do logów dla tego modułu.
+ */
 static const char *TAG = "IO_UTIL"; // TAG błędów dla io_util.c
+
+/**
+ * @brief Uchwyt do jednostki ADC skonfigurowanej w trybie oneshot.
+ * 
+ * Przechowuje kontekst ADC potrzebny do konfiguracji kanałów i odczytów.
+ */
 static adc_oneshot_unit_handle_t adc_handle = NULL;
 
 esp_err_t configDigitalPin(gpio_num_t outputPin, gpio_int_type_t type, gpio_mode_t mode) 
