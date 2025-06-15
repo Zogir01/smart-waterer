@@ -8,7 +8,7 @@
  * oraz sygnałów wejściowych (przycisk, API).
  *
  * ### Główne komponenty:
- * - **ADC + czujnik wilgotności**: Cycliczny odczyt wilgotności gleby i konwersja na wartość procentową.
+ * - **ADC + czujnik wilgotności**: Cyckliczny odczyt wilgotności gleby i konwersja na wartość procentową.
  * - **Pompa wody**: Aktywowana, gdy poziom wilgotności spada poniżej zadanego progu.
  * - **FreeRTOS Taski**:
  *    - `taskReadHumiditySensor`: Odczyt i analiza wilgotności.

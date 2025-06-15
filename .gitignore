@@ -1,4 +1,6 @@
 esp32_firmware/build
+doc/doxygen-esp32-firmware
 
 *.project
 *.cproject
+

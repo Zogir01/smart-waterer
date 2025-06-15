@@ -1,5 +1,5 @@
 /**
- * @file user_config.c
+ * @file user_config.h
  * @brief Funkcje do zapisu i odczytu konfiguracji użytkownika w pamięci NVS.
  */
 #ifndef USER_CONFIG_H
