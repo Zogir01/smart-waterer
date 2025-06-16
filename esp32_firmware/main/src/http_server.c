@@ -19,8 +19,8 @@ extern volatile QueueHandle_t humidity_queue;
 
 esp_err_t root_get_handler(httpd_req_t *req)
 {
-	// Testowa strona html wysyłająca zapytanie GET /api/humidity co sekunde oraz wyświetlająca wilgotność
 
+// strona html klienta webowego
 const char *html =
 "<!DOCTYPE html>\n"
 "<html lang=\"pl\">\n"

@@ -24,7 +24,7 @@
 /**
  * @brief Obsługuje żądanie GET na stronie głównej.
  * 
- * Wyświetla testową stronę HTML z aktualną wilgotnością gleby, przyciskiem do zdalnego podlewania,
+ * Wyświetla stronę HTML klienta webowego z aktualną wilgotnością gleby, przyciskiem do zdalnego podlewania,
  * formularzem do zmiany konfiguracji oraz wyświetleniem aktualnych ustawień.
  * 
  * @param req Wskaźnik do struktury żądania HTTP.
