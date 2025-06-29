@@ -9,6 +9,7 @@ esp_err_t config_save(const user_config_t *config) {
     if (err != ESP_OK) return err;
 
     nvs_set_i32(handle, "wat-time", config->watering_time);
+    nvs_set_i32(handle, "wat-intv", config->watering_interval);
     nvs_set_i32(handle, "samp-cnt", config->sample_count);
     nvs_set_i32(handle, "rd-delay", config->read_delay);
     nvs_set_i32(handle, "dry-thrd", config->dry_threshold);
@@ -24,6 +25,7 @@ esp_err_t config_load(user_config_t *config) {
     if (err != ESP_OK) return err;
     
     nvs_get_i32(handle, "wat-time", &config->watering_time);
+    nvs_get_i32(handle, "wat-intv", &config->watering_interval);
     nvs_get_i32(handle, "samp-cnt", &config->sample_count);
     nvs_get_i32(handle, "rd-delay", &config->read_delay);
     nvs_get_i32(handle, "dry-thrd", &config->dry_threshold);

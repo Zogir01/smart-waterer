@@ -3,6 +3,7 @@
 #include "../inc/config.h"
 #include "esp_http_server.h"
 #include "freertos/projdefs.h"
+#include "esp_log.h"
 #include "cJSON.h"
 #include <string.h>
 #include <fcntl.h>
@@ -19,6 +20,8 @@ extern volatile QueueHandle_t humidity_queue;
 
 esp_err_t root_get_handler(httpd_req_t *req)
 {
+
+	ESP_LOGI(TAG, "Przesylam strone glowna do uzytkownika.");
 
 // strona html klienta webowego
 const char *html =
@@ -142,10 +145,11 @@ const char *html =
 "    <div class=\"alert\" id=\"alert\">Uwaga! Zbyt mała wilgotność gleby!</div>\n"
 "\n"
 "    <div class=\"info\" id=\"dodatkoweDane\">\n"
+"      <p><strong>Czas podlewania:</strong> -- ms</p>\n"
+"      <p><strong>Min. czas pomiędzy podlewaniem:</strong> -- ms</p>\n"
+"      <p><strong>Liczba odczytów do średniej:</strong> --</p>\n"
+"      <p><strong>Opóźnienie między odczytami:</strong> -- ms</p>\n"
 "      <p><strong>Próg wilgotności:</strong> -- %</p>\n"
-"      <p><strong>Czas podlewania:</strong> -- sek</p>\n"
-"      <p><strong>Okres podlewania:</strong> -- sek</p>\n"
-"      <p><strong>Liczba próbek:</strong> --</p>\n"
 "    </div>\n"
 "\n"
 "    <div class=\"timestamp\" id=\"czas\">Ładowanie danych...</div>\n"
@@ -153,13 +157,16 @@ const char *html =
 "    <div class=\"form-section\">\n"
 "      <h2>Konfiguracja urządzenia</h2>\n"
 "      <form id=\"configForm\">\n"
-"        <label>⏱️ Czas podlewania (s):\n"
+"        <label>⏱️ Czas podlewania (ms):\n"
 "          <input type=\"number\" id=\"watering_time\" required min=\"0\" />\n"
 "        </label>\n"
-"        <label>🔁 Liczba próbek:\n"
+"        <label>⏱️ Min. czas pomiędzy podlewaniem (ms):\n"
+"          <input type=\"number\" id=\"watering_interval\" required min=\"0\" />\n"
+"        </label>\n"
+"        <label>🔁 Liczba odczytów do średniej:\n"
 "          <input type=\"number\" id=\"sample_count\" required min=\"0\" />\n"
 "        </label>\n"
-"        <label>⏳ Opóźnienie między odczytami (s):\n"
+"        <label>⏳ Opóźnienie między odczytami(ms):\n"
 "          <input type=\"number\" id=\"read_delay\" required min=\"0\" />\n"
 "        </label>\n"
 "        <label>💧 Próg wilgotności (%):\n"
@@ -215,13 +222,16 @@ const char *html =
 "        dryThreshold = config.dry_threshold;\n"
 "\n"
 "        dodatkoweDaneEl.innerHTML = `\n"
+"          <p><strong>Czas podlewania:</strong> ${config.watering_time} ms</p>\n"
+"          <p><strong>Min. czas pomiędzy podlewaniem:</strong> ${config.watering_interval} ms</p>\n"
+"          <p><strong>Liczba odczytów do średniej:</strong> ${config.sample_count}</p>\n"
+"          <p><strong>Opóźnienie między odczytami:</strong> ${config.read_delay} ms</p>\n"
 "          <p><strong>Próg wilgotności:</strong> ${config.dry_threshold} %</p>\n"
-"          <p><strong>Czas podlewania:</strong> ${config.watering_time} sek</p>\n"
-"          <p><strong>Okres podlewania:</strong> ${config.read_delay} sek</p>\n"
-"          <p><strong>Liczba próbek:</strong> ${config.sample_count}</p>\n"
 "        `;\n"
+
 "\n"
 "        document.getElementById('watering_time').value = config.watering_time;\n"
+"        document.getElementById('watering_interval').value = config.watering_interval;\n"
 "        document.getElementById('sample_count').value = config.sample_count;\n"
 "        document.getElementById('read_delay').value = config.read_delay;\n"
 "        document.getElementById('dry_threshold').value = config.dry_threshold;\n"
@@ -237,12 +247,14 @@ const char *html =
 "      statusMsg.textContent = '';\n"
 "\n"
 "      const watering_time = parseInt(document.getElementById('watering_time').value);\n"
+"      const watering_interval = parseInt(document.getElementById('watering_interval').value);\n"
 "      const sample_count = parseInt(document.getElementById('sample_count').value);\n"
 "      const read_delay = parseInt(document.getElementById('read_delay').value);\n"
 "      const dry_threshold = parseInt(document.getElementById('dry_threshold').value);\n"
 "\n"
 "      if (\n"
 "        watering_time < 0 ||\n"
+"        watering_interval < 0 ||\n"
 "        sample_count < 0 ||\n"
 "        read_delay < 0 ||\n"
 "        dry_threshold < 0 || dry_threshold > 100\n"
@@ -252,7 +264,7 @@ const char *html =
 "        return;\n"
 "      }\n"
 "\n"
-"      const payload = { watering_time, sample_count, read_delay, dry_threshold };\n"
+"      const payload = { watering_time, watering_interval, sample_count, read_delay, dry_threshold };\n"
 "\n"
 "      try {\n"
 "        const res = await fetch('/api/config', {\n"
@@ -295,7 +307,7 @@ const char *html =
 "    pobierzKonfiguracje();\n"
 "    pobierzWilgotnosc();\n"
 "    setInterval(pobierzWilgotnosc, 5000);\n"
-"    setInterval(pobierzKonfiguracje,5000);\n"
+"    //setInterval(pobierzKonfiguracje,5000);\n"
 "  </script>\n"
 "</body>\n"
 "</html>\n";
@@ -315,6 +327,8 @@ const char *html =
 
 esp_err_t water_post_handler(httpd_req_t *req) 
 {
+	ESP_LOGI(TAG, "Dodaje sygnal podlewania z REST API.");
+	
 	uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
 	
     // Przez 100ms próbuje dodać sygnał podlewania do kolejki, jeśli kolejka będzie
@@ -379,7 +393,7 @@ esp_err_t humidity_get_handler(httpd_req_t *req)
 esp_err_t config_post_handler(httpd_req_t *req) 
 {
 	// Bufor danych 
-    char buf[100];
+    char buf[200];
     
     // Ustawienie bufora
     int ret = httpd_req_recv(req, buf, sizeof(buf));
@@ -391,14 +405,22 @@ esp_err_t config_post_handler(httpd_req_t *req)
 
   	// Pobierz pola z JSON'a
     cJSON *watering_time_item = cJSON_GetObjectItem(json, "watering_time");
+    cJSON *watering_interval_item = cJSON_GetObjectItem(json, "watering_interval");
     cJSON *sample_count_item = cJSON_GetObjectItem(json, "sample_count");
     cJSON *read_delay_item = cJSON_GetObjectItem(json, "read_delay");
     cJSON *dry_threshold_item = cJSON_GetObjectItem(json, "dry_threshold");
+    
+    ESP_LOGI(TAG, "Uzytkownik zmienia konfiguracje:\nczas podlewania = %d ms\nczas pomiedzy podlewaniem = %d ms\nilosc probek do sredniej = %d\nczas pomiedzy pomiarami = %d ms\nprog wilgotnosci = %d",
+         watering_time_item->valueint, watering_interval_item->valueint, sample_count_item->valueint, read_delay_item->valueint, dry_threshold_item->valueint);
 
     // Walidacja typów i zakresów
     if (   !cJSON_IsNumber(watering_time_item) 
     	|| watering_time_item->valueint < MIN_WATERING_TIME 
     	|| watering_time_item->valueint > MAX_WATERING_TIME 
+    	
+    	|| !cJSON_IsNumber(watering_interval_item)  
+		|| watering_interval_item->valueint  < MIN_WATERING_INTERVAL  
+		|| watering_interval_item->valueint  > MAX_WATERING_INTERVAL 
     	
 		|| !cJSON_IsNumber(sample_count_item)  
 		|| sample_count_item->valueint  < MIN_SAMPLE_COUNT  
@@ -412,15 +434,18 @@ esp_err_t config_post_handler(httpd_req_t *req)
         || dry_threshold_item->valueint < MIN_DRY_THRESHOLD 
         || dry_threshold_item->valueint > MAX_DRY_THRESHOLD) 
     {
+		ESP_LOGI(TAG, "Uzytkownik wprowadzil niepoprawne dane.");
         cJSON_Delete(json);
         httpd_resp_set_status(req, "400 Bad Request");
         httpd_resp_set_type(req, "application/json");
         httpd_resp_sendstr(req, "{\"error\":\"Nieprawidlowe dane w konfiguracji - przekroczono zakres\"}");
         return ESP_OK;
     }
-
+	ESP_LOGI(TAG, "Uzytkownik wprowadzil poprawne dane, zapisuje konfiguracje.");
+	
     // Przypisz do user_config
     user_config.watering_time = watering_time_item->valueint;
+    user_config.watering_interval = watering_interval_item->valueint;
     user_config.sample_count = sample_count_item->valueint;
     user_config.read_delay = read_delay_item->valueint;
     user_config.dry_threshold = (int)dry_threshold_item->valuedouble;
@@ -445,6 +470,7 @@ esp_err_t config_get_handler(httpd_req_t *req)
 
     // Zapisanie zmiennych z konfiguracji użytkownika do obiektu JSON
     cJSON_AddNumberToObject(json, "watering_time", user_config.watering_time);
+    cJSON_AddNumberToObject(json, "watering_interval", user_config.watering_interval);
     cJSON_AddNumberToObject(json, "sample_count", user_config.sample_count);
     cJSON_AddNumberToObject(json, "read_delay", user_config.read_delay);
     cJSON_AddNumberToObject(json, "dry_threshold", user_config.dry_threshold);

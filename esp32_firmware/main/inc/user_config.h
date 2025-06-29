@@ -22,6 +22,14 @@ typedef struct {
     int watering_time; 
     
     /**
+	 * @brief Minimalny czas (w milisekundach) pomiędzy kolejnymi cyklami podlewania.
+	 *
+	 * Po wykonaniu podlewania system odczekuje co najmniej ten czas,
+	 * zanim ponownie rozważy uruchomienie zaworu.
+	 */
+	int watering_interval;
+    
+    /**
      * @brief Ilość pomiarów wilgotności do uśrednienia.
      *
      * Przed podjęciem decyzji o podlewaniu wykonywanych jest kilka pomiarów,

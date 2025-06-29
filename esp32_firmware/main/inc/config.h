@@ -62,31 +62,42 @@
 
 /** Minimalny dozwolony czas podlewania w ms */
 #define MIN_WATERING_TIME					100				
-
 /** Maksymalny dozwolony czas podlewania w ms */
-#define MAX_WATERING_TIME					10000			
+#define MAX_WATERING_TIME					10000	
+/** Domyślny dozwolony czas podlewania w ms */
+#define DEFAULT_WATERING_TIME				1000
+
+/** Minimalny czas pomiędzy kolejnymi cyklami podlewania w ms */
+#define MIN_WATERING_INTERVAL				100				
+/** Maksymalny czas pomiędzy kolejnymi cyklami podlewania w ms */
+#define MAX_WATERING_INTERVAL				36000000
+/** Domyślny czas pomiędzy kolejnymi cyklami podlewania w ms */
+#define DEFAULT_WATERING_INTERVAL			1000
 
 /** Minimalna dozwolona liczba pomiarów wilgotności do uśredniania */
 #define MIN_SAMPLE_COUNT					1				
-
 /** Maksymalna dozwolona liczba pomiarów wilgotności do uśredniania */
 #define MAX_SAMPLE_COUNT					10000			
+/** Domyślna dozwolona liczba pomiarów wilgotności do uśredniania */
+#define DEFAULT_SAMPLE_COUNT				20	
 
 /** Minimalny dozwolony czas opóźnienia pomiędzy pomiarami wilgotności w ms */
 #define MIN_READ_DELAY 						50				
-
 /** Maksymalny dozwolony czas opóźnienia pomiędzy pomiarami wilgotności w ms */
 #define MAX_READ_DELAY 						10000			
+/** Domyślny dozwolony czas opóźnienia pomiędzy pomiarami wilgotności w ms */
+#define DEFAULT_READ_DELAY 					100	
 
 /** Minimalny próg wilgotności do podlewania */
 #define MIN_DRY_THRESHOLD					1				
-
 /** Maksymalny próg wilgotności do podlewania */
-#define MAX_DRY_THRESHOLD 					99				
+#define MAX_DRY_THRESHOLD 					99		
+/** Domyślny próg wilgotności do podlewania */
+#define DEFAULT_DRY_THRESHOLD 				50		
 
 // ------------------------------ DODATKOWE DO TESTÓW --------------------------------------
 
 /** Flaga określająca, czy podlewanie nastąpi poniżej (true) czy powyżej (false) progu wilgotności (do testów) */
-#define HUM_THRESHOLD_REVERSE       		true    	
+#define HUM_THRESHOLD_REVERSE       		false    	
 
 #endif // CONFIG_H

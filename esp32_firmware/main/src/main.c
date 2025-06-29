@@ -11,7 +11,8 @@
  * - **ADC + czujnik wilgotności**: Cyckliczny odczyt wilgotności gleby i konwersja na wartość procentową.
  * - **Pompa wody**: Aktywowana, gdy poziom wilgotności spada poniżej zadanego progu.
  * - **FreeRTOS Taski**:
- *    - `taskReadHumiditySensor`: Odczyt i analiza wilgotności.
+ *    - `taskReadHumiditySensor`: Odczyt wilgotności z ADC.
+  *    - `taskMakeDecisionToWater`: Decyduje o podlewaniu, odbierając aktualną wilgotność
  *    - `taskWaterPump`: Obsługa włączania pompy na określony czas.
  *    - `taskHttpServer`: Integracja z API (placeholder).
  * - **Kolejki FreeRTOS**:
@@ -33,6 +34,7 @@
 // ------------------------------- ESP-IDF -------------------------------------------------
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
@@ -50,6 +52,7 @@
 #include "../inc/user_config.h"
 #include "../inc/http_server.h"
 #include "../inc/wifi_ap.h"
+#include "portmacro.h"
 
 // ------------------------------- ZMIENNE GLOBALNE ----------------------------------------
 
@@ -57,6 +60,21 @@
  * @brief TAG do logów dla main.c
  */
 static const char *TAG = "MAIN"; // TAG błędów dla main.c
+
+/**
+ * @brief TAG do logów dla taskReadHumiditySensor
+ */
+static const char *TAG_readHumiditySensor = "(task) ReadHumiditySensor"; // TAG błędów dla main.c
+
+/**
+ * @brief TAG do logów dla taskMakeDecisionToWater
+ */
+static const char *TAG_makeDecisionToWater = "(task) MakeDecisionToWater"; // TAG błędów dla main.c
+
+/**
+ * @brief TAG do logów dla taskWaterPump
+ */
+static const char *TAG_waterPump = "(task) WaterPump"; // TAG błędów dla main.c
 
 /**
  * @brief Flaga stanu podlewania.
@@ -140,6 +158,14 @@ void taskReadHumiditySensor(void* arg);
  * @param arg Parametr nieużywany.
  */
 void taskHttpServer(void *arg);
+
+/**
+ * @brief Task do 
+ *
+ *
+ * @param arg Parametr nieużywany.
+ */
+void taskMakeDecisionToWater(void *arg);
 
 /**
  * @brief Obsługa przerwania od przycisku ręcznego podlewania.
@@ -226,23 +252,9 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     
-    // Wczytanie konfiguracji z NVS
-    // Jeśli brak danych w konfiguracji - inicjalizujemy domyślną konfigurację
-    if (config_load(&user_config) != ESP_OK) {
-        ESP_LOGI(TAG, "Brak zapisanej konfiguracji. Używam wartosci domyslnych.");
-        user_config.watering_time 	= DEFAULT_CONFIG_WATERING_TIME;
-        user_config.sample_count 	= DEFAULT_CONFIG_SAMPLE_COUNT;
-        user_config.read_delay 		= DEFAULT_CONFIG_READ_DELAY;
-        user_config.dry_threshold 	= DEFAULT_CONFIG_DRY_THRESHOLD;
-        
-        // Zapis domyślnej konfiguracji
-        ESP_ERROR_CHECK(config_save(&user_config));
-    }
-
-    // Wyświetlenie konfiguracji
-    ESP_LOGI(TAG, "Konfiguracja: czas podlewania = %d ms, ilosc probek do sredniej = %d, czas pomiedzy pomiarami = %d s, prog wilgotnosci = %d.",
-             user_config.watering_time, user_config.sample_count, user_config.read_delay, user_config.dry_threshold);
-	
+    // Wczytanie konfiguracji uzytkownika z pamieci NVS
+    init_user_config();
+    
 	// Konfiguracja przerwań
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT); // ustawienie flagi pod obsluge przerwan
     gpio_isr_handler_add(GPIO_MANUAL_WATERING_BUTTON, on_manual_watering_press, NULL);
@@ -255,6 +267,7 @@ void app_main(void)
     xTaskCreate(&taskWaterPump, "taskWaterPump", 2048, NULL, 5, NULL);
     xTaskCreate(&taskReadHumiditySensor, "taskReadHumiditySensor", 2048, NULL, 5, NULL);
 	xTaskCreate(&taskHttpServer, "taskHttpServer", 2048, NULL, 5, NULL);
+	xTaskCreate(&taskMakeDecisionToWater, "taskMakeDecisionToWater", 2048, NULL, 5, NULL);
 	
 	// Inicjalizacja serwera http
     start_webserver();
@@ -266,18 +279,19 @@ void init_user_config()
     // Jeśli brak danych w konfiguracji - inicjalizujemy domyślną konfigurację
     if (config_load(&user_config) != ESP_OK) {
         ESP_LOGI(TAG, "Brak zapisanej konfiguracji. Używam wartosci domyslnych.");
-        user_config.watering_time = 1000;
-        user_config.sample_count = 20;
-        user_config.read_delay = 100;
-        user_config.dry_threshold = 50;
+        user_config.watering_time 		= DEFAULT_WATERING_TIME;
+        user_config.watering_interval 	= DEFAULT_WATERING_INTERVAL;
+        user_config.sample_count 		= DEFAULT_SAMPLE_COUNT;
+        user_config.read_delay 			= DEFAULT_READ_DELAY;
+        user_config.dry_threshold 		= DEFAULT_DRY_THRESHOLD;
         
         // Zapis domyślnej konfiguracji
         ESP_ERROR_CHECK(config_save(&user_config));
     }
 
     // Wyświetlenie konfiguracji
-    ESP_LOGI(TAG, "Konfiguracja: czas podlewania = %d ms, ilosc probek do sredniej = %d, czas pomiedzy pomiarami = %d s, prog wilgotnosci = %d.",
-             user_config.watering_time, user_config.sample_count, user_config.read_delay, user_config.dry_threshold);
+    ESP_LOGI(TAG, "Wczytalem domyslna konfiguracje:\nczas podlewania = %d ms\nczas pomiedzy podlewaniem = %d ms\nilosc probek do sredniej = %d\nczas pomiedzy pomiarami = %d ms\nprog wilgotnosci = %d",
+             user_config.watering_time, user_config.watering_interval, user_config.sample_count, user_config.read_delay, user_config.dry_threshold);
 }
 
 void taskHttpServer(void *arg) {
@@ -304,19 +318,45 @@ void taskWaterPump(void* arg)
             
             // Rozpocznij podlewanie
             gpio_set_level(GPIO_PUMP_CONTROL, 1);
-            ESP_LOGI(TAG, "Rozpoczeto podlewanie.");
+            ESP_LOGI(TAG_waterPump, "Rozpoczynam podlewanie");
 
 			// Odczekaj ustalony czas
             vTaskDelay(pdMS_TO_TICKS(user_config.watering_time));
 
 			// Zatrzymaj podlewanie
             gpio_set_level(GPIO_PUMP_CONTROL, 0);
-            ESP_LOGI(TAG, "Zakonczono podlewanie.");
+            ESP_LOGI(TAG_waterPump, "Zatrzymuje podlewanie.");
             
             // Zwolnij flage podlewania
             isWatering = false;
         }
     } 
+}
+
+void taskMakeDecisionToWater(void* arg) 
+{
+	while(1) {
+		uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
+		float humidity = 0.0f;
+		
+		// Odczytaj wilgotnosc z kolejki - ale nie wyciągaj jej (po to aby http server mógł ją wyciągnąć)
+		xQueuePeek(humidity_queue, &humidity, portMAX_DELAY);
+	    
+	    // Określ czy należy podlać
+	    bool water_needed = (HUM_THRESHOLD_REVERSE) ? (humidity >= user_config.dry_threshold) : (humidity <= user_config.dry_threshold);
+	
+		// Jeśli podlewanie wymagane
+	    if (water_needed) {
+	        ESP_LOGI(TAG_makeDecisionToWater, "Odebralem wilgotnosc = %f, dodaje sygnal podlewania.", humidity);
+	        xQueueSend(watering_queue, &watering_signal, portMAX_DELAY);
+	    }
+	    else {
+			ESP_LOGI(TAG_makeDecisionToWater, "Odebralem wilgotnosc = %f.", humidity);
+		}
+		
+		// Odczekaj ustawiony przez uzytkownika czas przed nastepnym decydowaniem
+		vTaskDelay(pdMS_TO_TICKS(user_config.watering_interval));
+	}
 }
 
 void taskReadHumiditySensor(void* arg) 
@@ -336,24 +376,15 @@ void taskReadHumiditySensor(void* arg)
         // Wyślij wilgotność do kolejki, ewentualnie nadpisz starą wartość wilgotności
         xQueueOverwrite(humidity_queue, &humidity);
         
-		// Wyświetl wilgotność
-        ESP_LOGI(TAG, "Humidity = %f", humidity);
+        ESP_LOGI(TAG_readHumiditySensor, "Wilgotnosc = %f", humidity);
         //display_humidity(humidity); // wyświetlacz
-        
-        // Określ czy należy podlać
-        bool water_needed = (HUM_THRESHOLD_REVERSE) ? (humidity >= user_config.dry_threshold) : (humidity <= user_config.dry_threshold);
-
-		// Jeśli podlewanie wymagane
-        if (water_needed) {
-            ESP_LOGI(TAG, "[taskReadHumiditySensor] Dodaje sygnal podlewania do kolejki.");
-            xQueueSend(watering_queue, &watering_signal, portMAX_DELAY);
-            //xSemaphoreTake(watering_semaphore, portMAX_DELAY);
-        }
     }
 }
  
 static void IRAM_ATTR on_manual_watering_press(void* arg) 
 {
+	ESP_LOGI(TAG, "Dodaje sygnal podlewania z przycisku.");
+	
     uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
 
 	// Jeśli podlewanie jest zatrzymane
