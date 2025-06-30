@@ -1,63 +1,61 @@
-# 🌱 Smart-Waterer – Intelligent Plant Watering System
+# Smart-Waterer – Intelligent Plant Watering System
 
-**Smart-Waterer** is an ESP32-based system designed to automate the watering of potted plants at home. It combines real-time soil moisture monitoring with mobile app control, allowing both automatic and manual watering through a REST API.
+**Smart-Waterer** is an ESP32-based system designed to automate the watering of potted plant at home. It combines real-time soil moisture monitoring with web control, allowing both automatic and manual watering through a REST API.
+Currently, ESP32 works in WiFi AccessPoint mode, but we plan to enable its connection to an existing network (station mode)
 
 ---
 
-## 📸 System Architecture
+## System Architecture
 
 ![Component Diagram](./doc/esp32-component-diagram.jpg)
 
+The system is built in a real-time operating system (RTOS). It consists of several main elements:
+- `taskReadHumiditySensor`: humidity reading from ADC
+- `taskMakeDecisionToWater`: automatic watering management
+- `taskWaterPump`: support for switching on the pump for a specified time
+- `watering_queue`: queue of watering signals read by taskWaterPump
+- `humidity_queue`: queue of current humidity readings
+- `user_config`: user configuration structure
+
+The http server is configured on the esp32. Following REST endpoints have been implemented:
+- `GET /` – download the html+css+js page with the user interface,
+- `GET /api/humidity` – download the current humidity,
+- `POST /api/water` – manually start watering,
+- `GET /api/config` – download the current configuration,
+- `POST /api/config` – save the new configuration.
+
+From the webpage we can change user configuration structure, which consists of the following settings:
+- `watering_time`: Watering duration in milliseconds.
+- `watering_interval`: Minimum time (in milliseconds) between watering cycles.
+- `sample_count`: Number of moisture measurements to average.
+- `read_delay`: Time in milliseconds between moisture measurements.
+- `dry_threshold`: Moisture threshold (%) below which watering is triggered.
+
+The user configuration structure is read at program startup and saved to NVS memory each time the user changes the configuration.
+
 ---
 
-## 🎯 Project Goal
-
-The goal of this project is to develop a comprehensive, low-cost, and user-friendly smart watering system that:
-
-- Automatically waters the plant based on real-time soil moisture readings.
-- Allows users to configure watering parameters via a mobile app or web interface.
-- Supports both manual and scheduled watering for maximum flexibility.
-
-Unlike many existing products that either focus only on monitoring or provide simple timed watering, Smart-Waterer offers an integrated and intelligent solution.
+## Board Schematic
+TO-DO
 
 ---
 
-## 🧩 Technologies Used
+## Technologies Used
 
 - **ESP32-WROOM-32** – Dual-core 32-bit microcontroller used as the main controller.
 - **ESP-IDF** – Official Espressif development framework for writing ESP32 firmware in C/C++.
 - **ESP-IDF FreeRTOS** – Real-time operating system for managing multitasking on ESP32.
-- **Java** – Programming language used for building the mobile application for configuration and monitoring.
-- **REST API** – Exposed by the ESP32 to enable communication with the mobile app over HTTP.
-- **Mock API** – Developed for testing and rapid development of the mobile app.
+- **html+css+js** – Used to create a website hosted by esp32
 - **Altium Designer** – Used for designing the device's PCB and schematics.
 
 ---
 
-## 📁 Repository Structure
-
-```plaintext
-smart-waterer/
-├── esp32_firmware/               # ESP-IDF project
-│   └── ...
-├── mobile-app/                   # Android app
-│   └── ...
-├── hardware/                     # Schematics and PCB files (e.g. from Altium)
-│   └── ...
-├── doc/                          # Documentation and diagrams
-│   └── ...				
-```
-
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Requirements
 
 - ESP32-WROOM-32 development board
 - ESP-IDF environment set up
-- ~~Android Studio (for mobile app development)~~
-- ~~Altium Designer (for PCB modifications)~~
 
 ### Build & Flash (Firmware)
 
@@ -67,14 +65,6 @@ smart-waterer/
 
 ---
 
-## 📱 Features
-
-- Real-time moisture sensing
-- Configurable watering logic (via REST API)
-- Manual watering trigger via button or ~~app~~
-- Task-based FreeRTOS design (multithreaded)
-- Persistent configuration storage via NVS
-
-## 📬 Contact
+## Contact
 
 For questions or contributions, feel free to open an issue or pull request!
