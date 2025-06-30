@@ -7,7 +7,7 @@ Currently, ESP32 works in WiFi AccessPoint mode, but we plan to enable its conne
 
 ## System Architecture
 
-![Component Diagram](./doc/esp32-component-diagram.jpg)
+![Component Diagram](doc/diagrams/component-diagram.png)
 
 The system is built in a real-time operating system (RTOS). It consists of several main elements:
 - `taskReadHumiditySensor`: humidity reading from ADC
