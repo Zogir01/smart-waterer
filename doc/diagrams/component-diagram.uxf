@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>12</zoom_level>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>408</x>
+      <y>384</y>
+      <w>144</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>humidity [float]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;80.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>276</x>
+      <y>276</y>
+      <w>264</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Task&gt;&gt;
+*taskReadHumiditySensor*
+--
+
+-Odczyt wilgotności
+z przetwornika ADC
+
+bg=orange
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>744</x>
+      <y>408</y>
+      <w>264</w>
+      <h>156</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Task&gt;&gt;
+*Main Task*
+--
+
+-Inicjalizacja peryferiów
+-Obsługa serwera HTTP
+-Obsługa WiFi
+-Konfiguracja urządzenia
+
+bg=orange
+
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>276</x>
+      <y>480</y>
+      <w>312</w>
+      <h>48</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Queue&gt;&gt;
+*humidity_queue*
+
+bg=green</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>744</x>
+      <y>696</y>
+      <w>564</w>
+      <h>48</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Queue&gt;&gt;
+*watering_queue*
+
+bg=green</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>576</x>
+      <y>480</y>
+      <w>192</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>humidity [float]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;20.0;140.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>864</x>
+      <y>552</y>
+      <w>192</w>
+      <h>168</h>
+    </coordinates>
+    <panel_attributes>watering_signal [0..1]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1080</x>
+      <y>444</y>
+      <w>240</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Task&gt;&gt;
+*taskWaterPump*
+--
+
+-Obsługa włączania 
+pompy na określony czas
+
+bg=orange</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>768</x>
+      <y>840</y>
+      <w>288</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;ISR&gt;&gt;
+*on_manual_watering_press*
+--
+
+-Handler przycisku manualnego 
+podlewania
+
+bg=yellow</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1188</x>
+      <y>552</y>
+      <w>192</w>
+      <h>168</h>
+    </coordinates>
+    <panel_attributes>watering_signal [0..1]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;120.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>864</x>
+      <y>732</y>
+      <w>192</w>
+      <h>132</h>
+    </coordinates>
+    <panel_attributes>watering_signal [0..1]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;90.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>276</x>
+      <y>660</y>
+      <w>276</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Task&gt;&gt;
+*taskMakeDecisionToWater*
+--
+
+-Zarządzanie automatycznym
+podlewaniem
+
+bg=orange</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>864</x>
+      <y>216</y>
+      <w>156</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;.&gt;
+GET /
+GET /api/humidity
+POST /api/water
+GET /api/config
+POST /api/config
+
+fontsize=13</panel_attributes>
+    <additional_attributes>10.0;160.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>540</x>
+      <y>696</y>
+      <w>228</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>watering_signal [0 lub 1]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;20.0;170.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>408</x>
+      <y>516</y>
+      <w>144</w>
+      <h>168</h>
+    </coordinates>
+    <panel_attributes>humidity [float]
+lt=.&gt;
+&lt;&lt;flow&gt;&gt;</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>744</x>
+      <y>72</y>
+      <w>276</w>
+      <h>156</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;Device&gt;&gt;
+*User Device*
+--
+- łączność przez WiFi
+- wyświetlanie wilgotności
+- zdalne podlewanie
+- odczyt/zmiana konfiguracji 
+urządzenia
+
+
+
+bg=gray</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>228</x>
+      <y>252</y>
+      <w>1140</w>
+      <h>732</h>
+    </coordinates>
+    <panel_attributes>
+
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Text</id>
+    <coordinates>
+      <x>1212</x>
+      <y>216</y>
+      <w>204</w>
+      <h>84</h>
+    </coordinates>
+    <panel_attributes>ESP32 Firmware
+style=wordwrap
+
+fontsize=16</panel_attributes>
+    <additional_attributes/>
+  </element>
+</diagram>
