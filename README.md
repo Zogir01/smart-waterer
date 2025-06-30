@@ -33,6 +33,8 @@ From the webpage we can change user configuration structure, which consists of t
 
 The user configuration structure is read at program startup and saved to NVS memory each time the user changes the configuration.
 
+The web page returned using a GET / request is currently embedded in the code as a single string, but in the future we plan to use the SPIFFS file system to store the web page as a separate file.
+
 ---
 
 ## Board Schematic
