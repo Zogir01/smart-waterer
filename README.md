@@ -37,7 +37,22 @@ The web page returned using a GET / request is currently embedded in the code as
 
 ---
 
+## Screenshots
+
+### Prototype
+![web-dashboard](doc/images/prototype-08-may-2025.jpg)
+
+### Web Dashboard view
+![web-dashboard](doc/images/web-dashboard.png)
+
+---
+
 ## Board Schematic
+TO-DO
+
+---
+
+## PCB View 
 TO-DO
 
 ---
