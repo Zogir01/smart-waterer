@@ -52,6 +52,7 @@
 #include "../inc/user_config.h"
 #include "../inc/http_server.h"
 #include "../inc/wifi_ap.h"
+#include "../inc/message.h"
 #include "portmacro.h"
 
 // ------------------------------- ZMIENNE GLOBALNE ----------------------------------------
@@ -113,6 +114,11 @@ volatile QueueHandle_t watering_queue = NULL;
  * Pozwala na asynchroniczne pobieranie danych o wilgotności przez serwer HTTP.
  */
 volatile QueueHandle_t humidity_queue = NULL;
+
+/**
+ * @brief Kolejka do przesylu wiadomosci
+ */
+volatile QueueHandle_t message_queue = NULL;
 
 //-------------------------------- DEKLARACJE FUNKCJI --------------------------------------
 
@@ -203,6 +209,13 @@ esp_err_t read_average_humidity(float *humidity);
 float raw_adc_to_humidity(int raw_value);
 
 /**
+ * @brief Wysyla wiadomosc do kolejki wiadomosci message_queue
+ *
+ * @param system_message_t Wiadomosc do wyslania.
+ */
+void sendMessage(system_message_t msg);
+
+/**
  * @brief Główna funkcja aplikacji, punkt startowy programu na ESP32.
  * 
  * Funkcja `app_main()` wykonuje pełną inicjalizację systemu automatycznego podlewania roślin.
@@ -217,9 +230,10 @@ float raw_adc_to_humidity(int raw_value);
  * - Załadowanie konfiguracji użytkownika z NVS lub ustawienie domyślnych wartości, jeśli brak danych.
  * - Instalacja obsługi przerwań dla przycisku do ręcznego podlewania.
  * - Inicjalizacja WiFi w trybie Access Point (AP).
- * - Utworzenie i uruchomienie trzech tasków FreeRTOS:
+ * - Utworzenie i uruchomienie czterech tasków FreeRTOS:
  *    - `taskWaterPump` — zarządzanie pracą pompy.
- *    - `taskReadHumiditySensor` — odczyt wilgotności gleby i sterowanie podlewaniem.
+ *    - `taskReadHumiditySensor` — odczyt wilgotności gleby 
+ *	  - `taskMakeDecisionToWater` - decyzja o podlewaniu, powiadamianie taskWaterPump
  *    - `taskHttpServer` — obsługa serwera HTTP (API).
  * - Uruchomienie serwera HTTP do obsługi zdalnych żądań.
  * 
@@ -237,12 +251,16 @@ void app_main(void)
     configDigitalPin(GPIO_PUMP_CONTROL, GPIO_INTR_DISABLE, GPIO_MODE_OUTPUT);
     configDigitalPin(GPIO_MANUAL_WATERING_BUTTON, GPIO_MODE_INPUT, GPIO_INTR_POSEDGE); // inicjalizacja tutaj bo bez sensu w przerwaniu
     
+    // Startowo stan wysoki - wylaczony przekaznik
+    //gpio_set_level(GPIO_PUMP_CONTROL, 1);
+    
     // Konfiguracja pinu analogowego
     configAnalogPin(GPIO_HUM_SENSOR);
     
     //Inicjalizacja kolejek
     watering_queue = xQueueCreate(1, sizeof(int));
     humidity_queue = xQueueCreate(1, sizeof(int));
+    message_queue = xQueueCreate(10, sizeof(system_message_t));
     
     // Inicjalizacja NVS (Non-Volatile Storage)
     ESP_LOGI(TAG, "Inicjalizacja NVS...");
@@ -305,6 +323,7 @@ void taskHttpServer(void *arg) {
 
 void taskWaterPump(void* arg)
 {
+	gpio_set_level(GPIO_PUMP_CONTROL, 1);
     uint32_t watering_signal;	// Sygnał podlewania z kolejki, 1 - podlej, 0 - nie podlewaj
  
     while(1)
@@ -317,14 +336,14 @@ void taskWaterPump(void* arg)
             isWatering = true;
             
             // Rozpocznij podlewanie
-            gpio_set_level(GPIO_PUMP_CONTROL, 1);
+            gpio_set_level(GPIO_PUMP_CONTROL, 0);
             ESP_LOGI(TAG_waterPump, "Rozpoczynam podlewanie");
 
 			// Odczekaj ustalony czas
             vTaskDelay(pdMS_TO_TICKS(user_config.watering_time));
 
 			// Zatrzymaj podlewanie
-            gpio_set_level(GPIO_PUMP_CONTROL, 0);
+            gpio_set_level(GPIO_PUMP_CONTROL, 1);
             ESP_LOGI(TAG_waterPump, "Zatrzymuje podlewanie.");
             
             // Zwolnij flage podlewania
@@ -383,7 +402,7 @@ void taskReadHumiditySensor(void* arg)
  
 static void IRAM_ATTR on_manual_watering_press(void* arg) 
 {
-	ESP_LOGI(TAG, "Dodaje sygnal podlewania z przycisku.");
+	//ESP_LOGI(TAG, "Dodaje sygnal podlewania z przycisku.");
 	
     uint32_t watering_signal = 1;  // Sygnał podlewania, 1 - podlej
 
@@ -437,6 +456,14 @@ float raw_adc_to_humidity(int raw_value)
     float humidity = 100 - ((float)(raw_value - min_adc) / (max_adc - min_adc)) * 100.0; 
 
     return humidity;
+}
+
+void sendMessage(system_message_t msg) 
+{
+    // Wstawianie do kolejki
+    if (xQueueSend(message_queue, &msg, pdMS_TO_TICKS(100)) != pdPASS) {
+        ESP_LOGW(TAG, "Nie udało się wstawić wiadomości do kolejki!");
+    }
 }
 
 
